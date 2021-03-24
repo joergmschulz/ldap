@@ -184,7 +184,7 @@ services:
     - PLUGIN_WEBSERVICE=FALSE
     - PLUGIN_DNS=TRUE
 
-    - LDAP1_HOST=ldap1.datilo.de
+    - LDAP1_HOST=${LDAP1_HOSTNAME}
     # - LDAP1_HOST=ldap1
     - LDAP1_TLS=FALSE
     - LDAP1_BASE_DN=dc=elternserver,dc=de
