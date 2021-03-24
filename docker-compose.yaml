@@ -103,6 +103,8 @@ services:
       services:
         ipv4_address: ${LDAP1_IP}
     restart: always
+    extra_hosts:
+        - ${LDAP1_HOSTNAME}:${LDAP1_IP}
 
 
   fusiondirectory:
@@ -220,7 +222,7 @@ services:
         - "mail3.elternserver.de:10.100.101.13"
         - "c.sohoserver.local:10.100.101.15"
         # - "db.sohoserver.local:10.100.101.14"
-        - ldap1.faudin.de:${LDAP1_IP}
+        - ${LDAP1_HOSTNAME}:${LDAP1_IP}
         # - localhost:127.0.0.1
 
 networks:
