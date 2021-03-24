@@ -101,7 +101,7 @@ services:
 
     networks:
       services:
-        ipv4_address: 172.20.0.2
+        ipv4_address: ${LDAP1_IP}
     restart: always
 
 
@@ -213,7 +213,7 @@ services:
     networks:
       traefik:
       services:
-        ipv4_address: 172.20.0.3
+        ipv4_address: ${FUSIONDIRECTORY_IP}
     restart: always
     extra_hosts:
         - "mail3.elternserver.local:10.100.101.13"
