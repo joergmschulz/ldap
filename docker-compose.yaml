@@ -130,7 +130,7 @@ services:
     environment:
     # - CONTAINER_MODE=nginx
     - TIMEZONE=Europe/Berlin
-    - VIRTUAL_HOST=dir.datilo.de
+    - VIRTUAL_HOST=dir.${DOMAIN}.de
     - VIRTUAL_NETWORK=traefik
     # - VIRTUAL_PORT=80
     # - LETSENCRYPT_HOST=fusiondirectory.example.org
