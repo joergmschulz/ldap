@@ -1,0 +1,243 @@
+version: '3.7'
+
+
+# from: https://github.com/tiredofit/docker-self-service-password/blob/master/examples/docker-compose.yml
+services:
+  ldap1:
+    hostname: ldap1
+    domainname: local
+    image: tiredofit/openldap-fusiondirectory
+    container_name: ldap1
+    ports:
+    - 389:389
+    - 636:636
+    volumes:
+    - ${LDAP_BACKUP_DIR}:/data/backup
+    - ${LDAP_DATA_DIR}:/var/lib/openldap
+    - ${LDAP_CONF_DIR}:/etc/openldap/slapd.d
+    # - /etc/letsencrypt-readers/:/assets/slapd/certs
+    - ${LDAP_CERT_DIR}:/certs
+    - ${LDAP_LOG_DIR}:/logs
+    # - ./certs:/assets/slapd/certs
+    labels:
+      - traefik.enable=false
+
+    environment:
+    # - DEBUG_MODE=TRUE
+    - DEBUG_MODE=FALSE
+    - HOSTNAME=ldap1
+    - BACKEND=mdb
+    - DOMAIN=elternserver.local
+    - ADMIN_PASS=${LDAP_ADMIN_PASSWORD}
+    - CONFIG_PASS=${LDAP_CONFIG_PASSWORD}
+    - LOG_TYPE=FILE
+
+    - FUSIONDIRECTORY_ADMIN_USER=js
+    - FUSIONDIRECTORY_ADMIN_PASS=${LDAP_FD_PASSWORD}
+    - ORGANIZATION=Elternserver
+
+    - BASE_DN=dc=elternserver,dc=de
+    - ENABLE_READONLY_USER=true
+    - READONLY_USER_USER=admin_ro
+    - READONLY_USER_PASS=${LDAP_READONLY_USER_PASSWORD}
+
+    - ENABLE_TLS=true
+    - TLS_CRT_FILENAME=cert.pem
+    # - TLS_CA_CRT_FILENAME=cert.pem
+    - TLS_RESET_PERMISSIONS=FALSE
+    - TLS_KEY_FILENAME=privkey.pem
+    - TLS_CA_KEY_FILENAME=privkey.pem
+    - TLS_CA_CRT_FILENAME=fullchain.pem
+    - TLS_CA_CRT_PATH=/certs
+    - TLS_ENFORCE=false
+    - TLS_KEY_PATH=/certs
+    - TLS_CREATE_CA=FALSE
+    - TLS_CRT_PATH=/certs
+    - TLS_DH_PARAM_PATH=/certs
+    - TLS_CIPHER_SUITE=ECDH+AESGCM:DH+AESGCM:ECDH+AES256:DH+AES256:ECDH+AES128:DH+AES:RSA+AESGCM:RSA+AES:-DHE-DSS:-RSA:!aNULL:!MD5:!DSS:!SHA
+    - TLS_VERIFY_CLIENT=never
+    - SSL_HELPER_PREFIX=ldap
+    # - LOG_LEVEL=512
+    - LOG_LEVEL=0
+    ### not reapply on any start
+    - REAPPLY_PLUGIN_SCHEMAS=TRUE
+    - PLUGIN_ALIAS=TRUE
+    - PLUGIN_AUDIT=TRUE
+    - PLUGIN_ARGONAUT=TRUE
+    - PLUGIN_DOVECOT=TRUE
+    - PLUGIN_GPG=TRUE
+    - PLUGIN_PPOLICY=TRUE
+    - PLUGIN_DNS=TRUE
+    - PLUGIN_QUOTA=TRUE
+    - PLUGIN_MIXEDGROUPS=TRUE
+    - PLUGIN_NETROUPS=TRUE
+    - PLUGIN_NEXTCLOUD=TRUE
+    - PLUGIN_MAIL=TRUE
+    - ENABLE_REPLICATION=false
+    - REPLICATION_CONFIG_SYNCPROV=binddn="cn=admin,cn=config" bindmethod=simple credentials="admin" searchbase="cn=config" type=refreshAndPersist retry="60 +" timeout=1
+    - REPLICATION_DB_SYNCPROV=binddn="cn=admin,dc=example,dc=org" bindmethod=simple credentials="admin" searchbase="dc=example,dc=org" type=refreshAndPersist interval=00:00:00:10 retry="60 +" timeout=1
+    - REPLICATION_HOSTS=ldap://ldap1.example.com ldap://ldap2.example.com ldap://ldap3.example.com
+    - REMOVE_CONFIG_AFTER_SETUP=false
+
+    - BACKUP_CONFIG_CRON_PERIOD=0 4 * * *
+    - BACKUP_DATA_CRON_PERIOD=0 4 * * *
+    - BACKUP_TTL=15
+
+    - ZABBIX_HOSTNAME=ldap1
+    - ZABBIX_SERVER_ACTIVE=zabbix-server
+    - TIMEZONE=Europe/Berlin
+    - SMTP_DEBUG=0
+      # - SMTP_HOST=mail
+    - SMTP_HOST=${SMTP_HOST}
+    - SMTP_DOMAIN=${DOMAIN}.de
+    - SMTP_AUTHHENTICATION=LOGIN
+    - SMTP_USER=${SMTP_USER}
+    - SMTP_PASS=${LDAP_SMTP_PASSWORD}
+    - SMTP_PORT=2587
+    - SMTP_MAILDOMAIN=faudin.de
+    - SMTP_SECURE_TYPE=tls
+
+    - ENABLE_NGINX=FALSE
+
+    networks:
+      services:
+        ipv4_address: 172.20.0.2
+    restart: always
+
+
+  fusiondirectory:
+    container_name: fusiondirectory
+    # build:
+    #     context: ./docker-fusiondirectory
+    image: tiredofit/fusiondirectory
+    depends_on:
+      - ldap1
+    labels:
+      - traefik.enable=true
+      - "traefik.http.routers.dir.rule=Host(`dir.${DOMAIN}.de`)"
+      - "traefik.http.routers.dir.tls=true"
+      - "traefik.http.routers.dir.entrypoints=websecure"
+      - traefik.port=80
+      - traefik.docker.network=traefik
+      - traefik.backend=fusiondirectory
+    volumes:
+    - ${LDAP_LOG_DIR}:/www/logs
+    #- ./custom:/assets/fusiondirectory
+    # - ./ldap.conf:/etc/openldap/ldap.conf
+    #- ./plugins-custom:/assets/plugins-custom
+    ports:
+      - "8081:80"
+    environment:
+    # - CONTAINER_MODE=nginx
+    - TIMEZONE=Europe/Berlin
+    - VIRTUAL_HOST=dir.datilo.de
+    - VIRTUAL_NETWORK=traefik
+    # - VIRTUAL_PORT=80
+    # - LETSENCRYPT_HOST=fusiondirectory.example.org
+    # - LETSENCRYPT_EMAIL=yourname@example.org
+
+    #- ZABBIX_HOSTNAME=fusiondirectory
+    #- ZABBIX_SERVER_ACTIVE = zabbix-server
+    #- REAPPLY_PLUGIN_SCHEMAS=TRUE
+    #- PLUGIN_MIXEDGROUPS=FALSE
+    #- PLUGIN_ARGONAUT=TRUE
+    #- ENABLE_ARGONAUT=TRUE
+    #- PLUGIN_AUDIT=TRUE
+    ## - PLUGIN_DOVECOT=TRUE
+    #- PLUGIN_DSA=FALSE
+    #- PLUGIN_QUOTA=TRUE
+    #- PLUGIN_GPG=FALSE
+    #- PLUGIN_LDAPDUMP=TRUE
+    #- PLUGIN_LDAPMANAGER=TRUE
+    #- PLUGIN_MAIL=TRUE
+    #- PLUGIN_NETROUPS=TRUE
+    #- PLUGIN_NEXTCLOUD=TRUE
+    #- PLUGIN_PERSONAL=TRUE
+    #- PLUGIN_POSIX=TRUE
+    #- PLUGIN_PPOLICY=TRUE
+    #- PLUGIN_SSH=FALSE
+    #- PLUGIN_SUDO=FALSE
+    #- PLUGIN_WEBSERVICE=FALSE
+    #- PLUGIN_DNS=TRUE
+
+    - ZABBIX_HOSTNAME=fusiondirectory2
+    - ZABBIX_SERVER_ACTIVE=zabbix-server
+    - REAPPLY_PLUGIN_SCHEMAS=TRUE
+    - PLUGIN_ARGONAUT=FALSE
+    - ENABLE_ARGONAUT=FALSE
+    - PLUGIN_AUDIT=TRUE
+    - PLUGIN_DOVECOT=FALSE
+    - PLUGIN_DSA=FALSE
+    - PLUGIN_QUOTA=FALSE
+    - PLUGIN_GPG=FALSE
+    - PLUGIN_LDAPDUMP=TRUE
+    - PLUGIN_LDAPMANAGER=TRUE
+    - PLUGIN_NEXTCLOUD=TRUE
+    - PLUGIN_MAIL=TRUE
+    - PLUGIN_PERSONAL=TRUE
+    - PLUGIN_POSIX=FALSE
+    - PLUGIN_POSTFIX=FALSE
+    - PLUGIN_PPOLICY=TRUE
+    - PLUGIN_SSH=FALSE
+    - PLUGIN_SUDO=FALSE
+    - PLUGIN_SYSTEMS=FALSE
+    - PLUGIN_WEBSERVICE=FALSE
+    - PLUGIN_DNS=TRUE
+
+    - LDAP1_HOST=ldap1.datilo.de
+    # - LDAP1_HOST=ldap1
+    - LDAP1_TLS=FALSE
+    - LDAP1_BASE_DN=dc=elternserver,dc=de
+    - LDAP1_ADMIN_DN=cn=admin,dc=elternserver,dc=de
+    - LDAP1_ADMIN_PASS=${LDAP_ADMIN_PASSWORD}
+    - LDAP1_PORT=389
+    # - LDAP1_PORT=636
+    - LDAP1_NAME=ldap1
+
+    - LDAP2_BASE_DN=dc=elternserver,dc=de
+    - LDAP2_ADMIN_DN=cn=admin,dc=elternserver,dc=de
+    - LDAP2_HOST=c.elternserver.de
+    - LDAP2_ADMIN_PASS=${LDAP_ADMIN_PASSWORD}
+    - LDAP2_NAME=dir3
+    - LDAP2_PORT=636
+    - LDAP2_TLS=TRUE
+
+    - SMTP_HOST=${SMTP_HOST}
+    - SMTP_DOMAIN=${DOMAIN}.de
+    - SMTP_AUTHHENTICATION=LOGIN
+    - SMTP_USER=${SMTP_USER}
+    - SMTP_PASS=${LDAP_SMTP_PASSWORD}
+    - SMTP_PORT=2587
+    - SMTP_MAILDOMAIN=${DOMAIN}.de
+    - SMTP_SECURE_TYPE=tls
+    networks:
+      traefik:
+      services:
+        ipv4_address: 172.20.0.3
+    restart: always
+    extra_hosts:
+        - "mail3.elternserver.local:10.100.101.13"
+        - "mail3.elternserver.de:10.100.101.13"
+        - "c.sohoserver.local:10.100.101.15"
+        - "m.datilo.de:172.26.0.1"
+        - "murg.elternserver.local:10.100.101.16"
+        - "murg.elternserver.local:172.26.0.1"
+        # - "db.sohoserver.local:10.100.101.14"
+        - "murg.elternserver.de:172.26.0.1"
+        - ldap1.datilo.de:172.20.0.2
+        # - localhost:127.0.0.1
+
+networks:
+  services:
+    external: true
+
+
+networks:
+  traefik:
+    external: true
+  services:
+    external: true
+
+# volumes:
+#    log: {}
+    # ssp: {}
