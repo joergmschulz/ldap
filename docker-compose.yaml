@@ -125,8 +125,8 @@ services:
     #- ./custom:/assets/fusiondirectory
     # - ./ldap.conf:/etc/openldap/ldap.conf
     #- ./plugins-custom:/assets/plugins-custom
-    ports:
-      - "8081:80"
+    # ports:
+    #   - "8081:80"
     environment:
     # - CONTAINER_MODE=nginx
     - TIMEZONE=Europe/Berlin
