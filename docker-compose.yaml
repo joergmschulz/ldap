@@ -220,7 +220,7 @@ services:
         - "mail3.elternserver.de:10.100.101.13"
         - "c.sohoserver.local:10.100.101.15"
         # - "db.sohoserver.local:10.100.101.14"
-        - ldap1.faudin.de:172.20.0.2
+        - ldap1.faudin.de:${LDAP1_IP}
         # - localhost:127.0.0.1
 
 networks:
