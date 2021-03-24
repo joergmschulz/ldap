@@ -219,12 +219,8 @@ services:
         - "mail3.elternserver.local:10.100.101.13"
         - "mail3.elternserver.de:10.100.101.13"
         - "c.sohoserver.local:10.100.101.15"
-        - "m.datilo.de:172.26.0.1"
-        - "murg.elternserver.local:10.100.101.16"
-        - "murg.elternserver.local:172.26.0.1"
         # - "db.sohoserver.local:10.100.101.14"
-        - "murg.elternserver.de:172.26.0.1"
-        - ldap1.datilo.de:172.20.0.2
+        - ldap1.faudin.de:172.20.0.2
         # - localhost:127.0.0.1
 
 networks:
